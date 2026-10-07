@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: netshield-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: netshield
+    networks:
+      - netshield-net
+
+  server:
+    build: ./server
+    container_name: netshield-server
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/netshield
+      - JWT_SECRET=netshield-super-secret-key-change-in-production
+      - PORT=5000
+      - ML_SERVICE_URL=http://ml-service:8000
+    networks:
+      - netshield-net
+
+  ml-service:
+    build: ./ml-service
+    container_name: netshield-ml
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/netshield
+      - PORT=8000
+    networks:
+      - netshield-net
+
+  client:
+    build: ./client
+    container_name: netshield-client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - netshield-net
+
+volumes:
+  mongo-data:
+
+networks:
+  netshield-net:
+    driver: bridge
